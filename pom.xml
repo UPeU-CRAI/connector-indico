@@ -1,129 +1,116 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.identicum.midpoint</groupId>
-	<artifactId>connector-koha</artifactId>
-        <version>1.0.1</version>
-	<packaging>jar</packaging>
+    <parent>
+        <groupId>com.evolveum.polygon</groupId>
+        <artifactId>connector-parent</artifactId>
+        <version>1.5.2.0</version>
+    </parent>
 
-	<name>Midpoint Koha Connector</name>
-	<description>Identity Connector Framework (ConnId) connector for managing users and groups in Koha ILS.</description>
+    <groupId>com.identicum.connectors</groupId>
+    <artifactId>connector-indico</artifactId>
+    <version>0.0.1</version>
+    <packaging>jar</packaging>
 
-	<parent>
-		<groupId>com.evolveum.polygon</groupId>
-		<artifactId>connector-parent</artifactId>
-		<version>1.5.2.0</version>
-	</parent>
+    <name>Indico Connector (RO) for midPoint</name>
+    <description>ConnId connector that reads Indico event registrations via the HTTP Export API.</description>
 
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.source>1.8</maven.compiler.source>
-		<maven.compiler.target>1.8</maven.compiler.target>
-		<connectorPackage>com.identicum.connectors</connectorPackage>
-		<connectorClass>KohaConnector</connectorClass>
-	</properties>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <connectorPackage>com.identicum.connectors.indico</connectorPackage>
+        <connectorClass>IndicoConnector</connectorClass>
+        <jackson.version>2.16.1</jackson.version>
+        <wiremock.version>2.35.1</wiremock.version>
+    </properties>
 
-	<dependencies>
-		<dependency>
-			<groupId>com.evolveum.polygon</groupId>
-			<artifactId>connector-rest</artifactId>
-			<version>1.5.2.0</version>
-		</dependency>
-		<dependency>
-			<groupId>net.tirasa.connid</groupId>
-			<artifactId>connector-framework-internal</artifactId>
-			<version>1.5.2.0</version>
-		</dependency>
-		<!-- Apache HttpClient 4.x -->
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpclient</artifactId>
-			<version>4.5.14</version>
-		</dependency>
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20250517</version>
-		</dependency>
-		<!-- JUnit 5 for testing -->
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-api</artifactId>
-			<version>5.9.3</version>
-			<scope>test</scope>
-		</dependency>
+    <dependencies>
+        <dependency>
+            <groupId>net.tirasa.connid</groupId>
+            <artifactId>connector-framework-internal</artifactId>
+            <version>1.5.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.36</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.9.3</version>
+            <version>5.10.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>5.2.0</version>
+            <version>5.10.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>5.2.0</version>
+            <version>5.10.0</version>
             <scope>test</scope>
         </dependency>
-		<!-- https://mvnrepository.com/artifact/org.mockito/mockito-inline -->
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-inline</artifactId>
-                        <version>5.2.0</version>
-			<scope>test</scope>
-		</dependency>
+        <dependency>
+            <groupId>com.github.tomakehurst</groupId>
+            <artifactId>wiremock-jre8</artifactId>
+            <version>${wiremock.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.10.1</version>
-				<configuration>
-					<source>8</source>
-					<target>8</target>
-					<encoding>${project.build.sourceEncoding}</encoding>
-				</configuration>
-			</plugin>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<version>3.7.1</version>
-			</plugin>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <useModulePath>false</useModulePath>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-resources-plugin</artifactId>
-				<version>3.3.1</version>
-			</plugin>
-
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.2.5</version>
-                                <configuration>
-                                        <argLine>-Dnet.bytebuddy.experimental=true</argLine>
-                                </configuration>
-			</plugin>
-		</plugins>
-	</build>
-
-	<repositories>
-		<repository>
-			<id>evolveum</id>
-			<url>https://nexus.evolveum.com/nexus/content/groups/public/</url>
-		</repository>
-		<repository>
-			<id>evolveum-snapshots</id>
-			<url>https://nexus.evolveum.com/nexus/content/repositories/snapshots/</url>
-		</repository>
-	</repositories>
+    <repositories>
+        <repository>
+            <id>evolveum</id>
+            <url>https://nexus.evolveum.com/nexus/content/groups/public/</url>
+        </repository>
+        <repository>
+            <id>evolveum-snapshots</id>
+            <url>https://nexus.evolveum.com/nexus/content/repositories/snapshots/</url>
+        </repository>
+    </repositories>
 </project>

@@ -1,100 +1,79 @@
-# Conector de Koha para MidPoint
+# Indico Connector (Read-Only) for midPoint
 
-Conector de identidades para **Evolveum MidPoint** que gestiona el ciclo de vida de usuarios (Patrones) y grupos (Categorías de Patrones) en el **Sistema Integrado de Gestión de Bibliotecas (ILS) Koha**. Utiliza la API REST de Koha y está desarrollado siguiendo las mejores prácticas del Identity Connector Framework (ConnId).
+Connector for **Evolveum midPoint** that reads event registrations from **Indico 3.3.8** through the HTTP Export API. The project keeps the lightweight ConnId style of the original Koha connector but focuses on read-only personas/registrations (`SearchOp`, `SchemaOp`, `TestOp`).
 
-## ✨ Características Principales
-* **Gestión completa de Patrones y Categorías**: Operaciones de `Create`, `Search`, `Update` y `Delete` para cuentas y grupos.
-* **Arquitectura moderna y desacoplada**: El conector implementa directamente las interfaces de ConnId sin depender de clases base abstractas, lo que resulta en un código más robusto, mantenible y fácil de probar.
-* **Autenticación flexible**: Soporte nativo para autenticación **Básica** (usuario/contraseña) y **OAuth2** (Client Credentials).
-* **Búsqueda por atributos**: Permite buscar usuarios por UID, `userid`, `email` y `cardnumber` directamente desde MidPoint.
-* **Configuración limpia**: Un formulario de configuración en MidPoint que expone únicamente las propiedades necesarias, sin campos heredados innecesarios.
+## ✨ Highlights
+- **Event registrations as `__ACCOUNT__` objects**: exposes registrant ID, email, person names, state, payment/check-in flags and the parent event identifier.
+- **Authentication flexibility**: supports Indico API tokens (preferred) or the legacy API key + HMAC signature workflow.
+- **Robust HTTP client**: Java 11 `HttpClient` with configurable timeouts, TLS trust options and exponential backoff for 429/5xx.
+- **Safe JSON mapper**: resilient Jackson mapping with trace logging hooks and optional enrichment for nested person data.
 
-## 📋 Requisitos Previos
-* **Java** Development Kit (JDK) **8**, **11** o **17** (LTS).
-* **Apache Maven** 3.6.3 o superior para compilar desde la fuente.
+## 📋 Requirements
+- **Java 11** or newer.
+- **Apache Maven 3.8+**.
+- Access to an **Indico 3.3.8** instance with the HTTP Export API enabled.
 
-## 🚀 Instalación
-1.  **Descargar el conector**: Visita la sección [Releases](https://github.com/UPeU-CRAI/connector-koha/releases) y descarga el archivo `.jar` más reciente (p. ej., `connector-koha-1.0.1.jar`).
-2.  **Desplegar en MidPoint**: Copia el `.jar` en el directorio de conectores de tu instancia de MidPoint.
-    ```bash
-    cp connector-koha-1.0.1.jar $MIDPOINT_HOME/var/icf-connectors/
-    ```
-3.  **Reiniciar MidPoint** para que detecte y cargue el nuevo conector.
+## 🚀 Installation
+1. Build the connector:
+   ```bash
+   mvn clean package
+   ```
+2. Copy the produced JAR to midPoint:
+   ```bash
+   cp target/connector-indico-0.0.1.jar $MIDPOINT_HOME/var/icf-connectors/
+   ```
+3. Restart midPoint so it picks up the new bundle.
 
-## ⚙️ Configuración del Recurso en MidPoint
-
-Al crear un nuevo recurso en MidPoint, el fragmento de `connectorConfiguration` será el siguiente. Adapta los valores a tu entorno.
-
+## ⚙️ Example midPoint configuration
 ```xml
 <connectorConfiguration>
-    <icfc:configurationProperties
-        xmlns:icfc="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/connector-schema-3"
-        xmlns:cfg="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/bundle/connector-koha/com.identicum.connectors.KohaConnector">
-        
-        <cfg:serviceAddress>http://TU_URL_DE_KOHA</cfg:serviceAddress>
-        
-        <cfg:authenticationMethodStrategy>OAUTH2</cfg:authenticationMethodStrategy>
-        
-        <cfg:clientId>TU_CLIENT_ID</cfg:clientId>
-        <cfg:clientSecret>
-            <t:clearValue>TU_CLIENT_SECRET</t:clearValue>
-        </cfg:clientSecret>
-        
-        <cfg:trustAllCertificates>false</cfg:trustAllCertificates>
-        
-    </icfc:configurationProperties>
+  <icfc:configurationProperties
+    xmlns:icfc="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/connector-schema-3"
+    xmlns:cfg="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/bundle/connector-indico/com.identicum.connectors.indico">
+    <cfg:serviceAddress>https://indico.example.edu</cfg:serviceAddress>
+    <cfg:authStrategy>TOKEN</cfg:authStrategy>
+    <cfg:apiToken>
+      <t:clearValue>YOUR_TOKEN</t:clearValue>
+    </cfg:apiToken>
+    <cfg:pageSize>200</cfg:pageSize>
+    <cfg:defaultEventId>12345</cfg:defaultEventId>
+    <cfg:trustAllCertificates>false</cfg:trustAllCertificates>
+  </icfc:configurationProperties>
 </connectorConfiguration>
 ```
 
-## 🏛️ Arquitectura del Conector
+For legacy API key deployments, swap the `authStrategy` to `API_KEY`, and set `cfg:apiKey` / `cfg:apiSecret` instead of the token.
 
-* **KohaConnector.java**: Orquestador principal del conector. Implementa directamente las interfaces de ConnId (Connector, CreateOp, SearchOp, etc.) y coordina la lógica de negocio.
+## 🧭 Operations
+- `SearchOp`: Retrieves registrations for a given Indico event. Supports filtering by `__UID__` (registration id) or `email`. Event id must be supplied either through the filter (`eventId` attribute), operation options, or `defaultEventId` in the configuration.
+- `SchemaOp`: Publishes the read-only schema for registrant attributes.
+- `TestOp`: Performs a lightweight call to `/export/categories.json?limit=1` to verify connectivity and authentication.
+- `CreateOp` / `UpdateOp` / `DeleteOp` / `SyncOp`: Not supported in v0.0.1; Indico Export API is read-only. Any attempt to invoke them should be avoided or wrapped externally.
 
-* **KohaConfiguration.java**: Clase de configuración autocontenida que define las propiedades del conector visibles en MidPoint. Implementa `org.identityconnectors.framework.spi.Configuration`.
-
-* **KohaAuthenticator.java**: Centraliza la lógica para crear un cliente HTTP pre-autenticado, ya sea con Basic Auth o un token de OAuth2.
-
-* **Paquete `services`**: Contiene las clases (`PatronService`, `CategoryService`) que se comunican con los endpoints de la API REST de Koha.
-
-* **Paquete `mappers`**: Incluye los transformadores (`PatronMapper`, `CategoryMapper`) que convierten los datos entre el formato de ConnId y el JSON de Koha.
-
-## 🐛 Troubleshooting
-
-Para un diagnóstico detallado, puedes activar el logging TRACE o DEBUG en MidPoint. Añade la siguiente configuración a tu `logback.xml`:
-
-```xml
-<logger name="com.identicum.connectors" level="TRACE"/>
+## 🏗️ Architecture overview
 ```
+midPoint → IndicoConnector → RegistrationService → IndicoHttpClient → Indico HTTP Export API
+                                   ↓
+                             RegistrationMapper (JSON → ConnectorObject)
+```
+- **IndicoConnector**: Implements `Connector`, `SearchOp`, `SchemaOp`, and `TestOp`. Handles filter translation, pagination and error mapping.
+- **IndicoConfiguration**: Defines validated connector properties (service URL, authentication, timeouts, retry policy, pagination).
+- **IndicoAuthenticator**: Adds the appropriate headers/query parameters for API token or API key/secret authentication.
+- **IndicoHttpClient**: Wrapper around `java.net.http.HttpClient` with retry logic and TLS configuration options.
+- **RegistrationService**: Calls `/export/registrants/{eventId}.json` and exposes simple paging helpers.
+- **RegistrationMapper**: Converts JSON payloads into `ConnectorObject` instances while tolerating optional fields.
 
-Niveles de log recomendados:
+## 🐛 Troubleshooting & Logging
+Enable detailed logging in midPoint by adding to `logback.xml`:
+```xml
+<logger name="com.identicum.connectors.indico" level="DEBUG"/>
+```
+Use `TRACE` to capture sanitized JSON payloads for diagnostics. Secrets (tokens/keys) are never logged.
 
-INFO: Operaciones generales (por defecto).
+## 📄 Limitations (v0.0.1)
+- Read-only access to registrations; writes require custom Indico plugins or internal APIs.
+- Only the `/export/registrants` endpoint is covered. Optional person enrichment uses data available in the export payload.
+- Pagination relies on Indico's export response metadata; extremely large events may require tuning `pageSize` and retry parameters.
 
-DEBUG: Información útil para depurar flujos de operaciones.
-
-TRACE: Máximo nivel de detalle, incluyendo los payloads de las peticiones y respuestas HTTP.
-
-Revisa los logs de MidPoint para ver los mensajes emitidos por el conector.
-
-## 📜 Historial de Versiones
-### v1.0.1 (23 de julio de 2025)
-REFACTOR: Se ha refactorizado completamente el conector para eliminar la herencia de clases base (AbstractRestConnector, AbstractRestConfiguration). Ahora implementa las interfaces de ConnId directamente, resultando en un código más limpio y autocontenido.
-
-REFACTOR: La clase KohaConfiguration ahora es independiente y cumple con el contrato de la interfaz Configuration de ConnId, solucionando errores de compilación y mostrando un formulario limpio en MidPoint.
-
-CHORE: Se mejoró el archivo de mensajes (Messages.properties) para usar caracteres UTF-8 directamente, aumentando su legibilidad.
-
-FIX: Corregidos errores de compilación y pruebas de integración para alinearse con la nueva arquitectura.
-
-DOCS: Actualizado el README.md para reflejar la nueva arquitectura y las mejoras.
-
-### v1.0.0
-- Lanzamiento inicial del conector.
-- Soporte completo para operaciones CRUD de Patrones de Koha.
-- Implementación de autenticación Básica y OAuth2.
-
-## ⚖️ Licencia
-Este proyecto está bajo la [Licencia Apache 2.0](LICENSE).
-
-## 🤝 Contribuciones
-Las contribuciones son bienvenidas. Para cambios mayores, abre primero un issue para discutir lo que deseas modificar.
+## ⚖️ License
+[Apache License 2.0](LICENSE)
