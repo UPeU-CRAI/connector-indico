@@ -1,0 +1,24 @@
+{
+  "registrants": [
+    {
+      "id": "R2",
+      "email": "bob@example.org",
+      "person": {
+        "full_name": "Bob Builder",
+        "first_name": "Bob",
+        "last_name": "Builder"
+      },
+      "state": "cancelled",
+      "checked_in": false,
+      "paid": true,
+      "category_path": "Conference/Workshop"
+    },
+    {
+      "id": "R3",
+      "email": "carol@example.org",
+      "state": "pending",
+      "checked_in": false,
+      "paid": false
+    }
+  ]
+}

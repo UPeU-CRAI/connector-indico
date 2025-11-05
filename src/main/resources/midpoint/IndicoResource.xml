@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Reemplazar "REEMPLAZAR_CON_OID_UNICO" con el OID generado en su instancia de MidPoint -->
-<resource oid="REEMPLAZAR_CON_OID_UNICO"
+<resource oid="REPLACE_WITH_UNIQUE_OID"
           xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
           xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
           xmlns:icfs="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/resource-schema-3"
@@ -8,57 +7,62 @@
           xmlns:q="http://prism.evolveum.com/xml/ns/public/query-3"
           xmlns:t="http://prism.evolveum.com/xml/ns/public/types-3"
           xmlns:cap="http://midpoint.evolveum.com/xml/ns/public/resource/capabilities-3"
-          xmlns:cfg="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/bundle/connector-koha/com.identicum.connectors.KohaConnector">
+          xmlns:cfg="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/bundle/connector-indico/com.identicum.connectors.indico">
 
-    <name>Koha (UPeU)</name>
+    <name>Indico Registrations (Read-Only)</name>
 
     <connectorRef type="ConnectorType">
         <filter>
             <q:equal>
                 <q:path>c:connectorType</q:path>
-                <q:value>com.identicum.connectors.KohaConnector</q:value>
+                <q:value>com.identicum.connectors.indico.IndicoConnector</q:value>
             </q:equal>
             <q:equal>
                 <q:path>c:connectorVersion</q:path>
-                <q:value>1.0.1</q:value>
+                <q:value>0.0.1</q:value>
             </q:equal>
         </filter>
     </connectorRef>
 
     <connectorConfiguration>
-        <icfc:configurationProperties>
-            <cfg:serviceAddress>http://koha.upeu.edu.pe</cfg:serviceAddress>
-
-            <cfg:authenticationMethodStrategy>OAUTH2</cfg:authenticationMethodStrategy>
-            <cfg:clientId>TU_CLIENT_ID</cfg:clientId>
-            <cfg:clientSecret>
-                <t:clearValue>TU_CLIENT_SECRET</t:clearValue>
-            </cfg:clientSecret>
+        <icfs:configurationProperties>
+            <cfg:serviceAddress>https://indico.example.edu</cfg:serviceAddress>
+            <cfg:authStrategy>TOKEN</cfg:authStrategy>
+            <cfg:apiToken>
+                <t:clearValue>YOUR_TOKEN</t:clearValue>
+            </cfg:apiToken>
+            <cfg:pageSize>200</cfg:pageSize>
+            <cfg:defaultEventId>12345</cfg:defaultEventId>
             <cfg:trustAllCertificates>false</cfg:trustAllCertificates>
-        </icfc:configurationProperties>
+        </icfs:configurationProperties>
     </connectorConfiguration>
 
     <schemaHandling>
         <objectType>
             <kind>account</kind>
             <intent>default</intent>
-            <displayName>Patrón de Koha</displayName>
+            <displayName>Indico Registrant</displayName>
             <objectClass>icfs:account</objectClass>
             <default>true</default>
 
             <attribute>
-                <ref>icfs:name</ref> <displayName>User ID (Login)</displayName>
-                <outbound>
-                    <source><path>$user/name</path></source>
-                </outbound>
+                <ref>icfs:uid</ref>
+                <displayName>Registration identifier</displayName>
                 <inbound>
-                    <target><path>$user/name</path></target>
+                    <target>
+                        <path>$focus/extension/indicoRegistrationId</path>
+                    </target>
                 </inbound>
             </attribute>
+
             <attribute>
-                <ref>ri:surname</ref>
-                <outbound><source><path>$user/familyName</path></source></outbound>
-                <inbound><target><path>$user/familyName</path></target></inbound>
+                <ref>ri:eventId</ref>
+                <displayName>Event identifier</displayName>
+                <inbound>
+                    <target>
+                        <path>$focus/extension/indicoEventId</path>
+                    </target>
+                </inbound>
             </attribute>
         </objectType>
     </schemaHandling>
@@ -67,11 +71,7 @@
         <configured>
             <cap:schema/>
             <cap:testConnection/>
-            <cap:create/>
             <cap:read/>
-            <cap:update/>
-            <cap:delete/>
-            <cap:activation/>
         </configured>
     </capabilities>
 
